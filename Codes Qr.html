@@ -1,0 +1,146 @@
+<!Doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Generador de Códigos QR</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #007bff, #00c6ff);
+      color: #fff;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      text-align: center;
+      width: 320px;
+    }
+
+    h1 {
+      margin-bottom: 15px;
+      font-size: 24px;
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+    }
+
+    input[type="text"] {
+      border: 1px solid #ccc;
+      text-align: center;
+    }
+
+    button {
+      background: #fff;
+      color: #007bff;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #007bff;
+      color: #fff;
+    }
+
+    #qrcode {
+      margin-top: 20px;
+      background: #fff;
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    label {
+      font-size: 14px;
+      display: block;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Generador QR</h1>
+    <input type="text" id="text" placeholder="Escribe texto o URL...">
+    <label for="color">Color del código</label>
+    <input type="color" id="color" value="#000000">
+
+    <label for="bgColor">Color de fondo</label>
+    <input type="color" id="bgColor" value="#ffffff">
+
+    <label for="size">Tamaño</label>
+    <select id="size">
+      <option value="150">150x150</option>
+      <option value="250" selected>250x250</option>
+      <option value="350">350x350</option>
+    </select>
+
+    <button id="generate">Generar QR</button>
+    <button id="download">Descargar</button>
+
+    <div id="qrcode"></div>
+  </div>
+
+  <script>
+    const textInput = document.getElementById('text');
+    const colorInput = document.getElementById('color');
+    const bgColorInput = document.getElementById('bgColor');
+    const sizeSelect = document.getElementById('size');
+    const generateBtn = document.getElementById('generate');
+    const downloadBtn = document.getElementById('download');
+    const qrContainer = document.getElementById('qrcode');
+
+    let lastQR = null;
+
+    generateBtn.addEventListener('click', () => {
+      const text = textInput.value.trim();
+      if (!text) {
+        alert('Por favor, escribe un texto o URL');
+        return;
+      }
+      qrContainer.innerHTML = '';
+      const color = colorInput.value;
+      const bgColor = bgColorInput.value;
+      const size = parseInt(sizeSelect.value);
+
+      QRCode.toCanvas(text, {
+        width: size,
+        color: {
+          dark: color,
+          light: bgColor
+        }
+      }, (err, canvas) => {
+        if (err) return console.error(err);
+        qrContainer.appendChild(canvas);
+        lastQR = canvas;
+      });
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      if (!lastQR) {
+        alert('Genera un código QR primero');
+        return;
+      }
+      const link = document.createElement('a');
+      link.download = 'codigo_qr.png';
+      link.href = lastQR.toDataURL();
+      link.click();
+    });
+  </script>
+</body>
+</html>
