@@ -1,102 +1,247 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8"/>
-  <title>Generador QR</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="utf-8" />
+  <title>Generador QR Avanzado</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: Arial, Helvetica, sans-serif; display:flex; gap:2rem; padding:2rem; align-items:flex-start; }
-    .panel { width: 420px; padding:1rem; border-radius:8px; box-shadow:0 4px 14px rgba(0,0,0,.08); }
-    label { display:block; margin-top:.6rem; font-size:.9rem; }
-    input, textarea, select { width:100%; padding:.5rem; margin-top:.3rem; border-radius:6px; border:1px solid #ddd; }
-    button { margin-top:1rem; padding:.6rem .9rem; border-radius:8px; border:none; cursor:pointer; }
-    #preview { display:flex; align-items:center; justify-content:center; width:250px; height:250px; border:1px dashed #eee; background:#fff; }
-    .controls { display:flex; gap:.5rem; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #e3f2fd, #f9f9f9);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 2rem;
+      gap: 2rem;
+    }
+
+    .panel {
+      background: #fff;
+      border-radius: 1rem;
+      padding: 1.5rem;
+      width: 420px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 1rem;
+      color: #0d47a1;
+    }
+
+    label {
+      display: block;
+      font-weight: 500;
+      margin-top: 0.7rem;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      margin-top: 0.3rem;
+      padding: 0.6rem;
+      border: 1px solid #ccc;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    button {
+      flex: 1;
+      background-color: #0d47a1;
+      color: white;
+      border: none;
+      border-radius: 0.6rem;
+      padding: 0.6rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background-color: #1565c0;
+    }
+
+    #preview-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: white;
+      border-radius: 1rem;
+      padding: 1rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    #preview {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 1rem;
+      border-radius: 1rem;
+      background: white;
+      padding: 1.5rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+
+    canvas {
+      border-radius: 1rem;
+    }
+
+    #logo {
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+      color: #555;
+    }
   </style>
 </head>
 <body>
   <div class="panel">
-    <h2>Generador QR</h2>
+    <h2>🔹 Generador QR Avanzado</h2>
+
     <label>Texto o URL:
       <textarea id="text" rows="3" placeholder="https://ejemplo.com"></textarea>
     </label>
+
     <label>Tamaño (px):
       <select id="size">
-        <option value="128">128</option>
-        <option value="192" selected>192</option>
-        <option value="256">256</option>
+        <option value="192">192</option>
+        <option value="256" selected>256</option>
         <option value="384">384</option>
       </select>
     </label>
-    <label>Color (puntos):
-      <input id="color" type="color" value="#000000"/>
+
+    <label>Color de puntos:
+      <input id="color1" type="color" value="#0d47a1" />
     </label>
-    <label>Color fondo:
-      <input id="bg" type="color" value="#ffffff"/>
+
+    <label>Color secundario (degradado):
+      <input id="color2" type="color" value="#42a5f5" />
     </label>
+
+    <label>Fondo:
+      <input id="bg" type="color" value="#ffffff" />
+    </label>
+
+    <label>Tipo de degradado:
+      <select id="gradient">
+        <option value="none">Sin degradado</option>
+        <option value="linear" selected>Lineal horizontal</option>
+        <option value="radial">Radial</option>
+      </select>
+    </label>
+
+    <label>Margen (px):
+      <input id="margin" type="number" min="0" value="4" />
+    </label>
+
+    <label>Logo (opcional):
+      <input id="logo-url" type="text" placeholder="URL del logo (png, jpg, svg)" />
+    </label>
+
     <div class="controls">
       <button id="generate">Generar</button>
-      <button id="download">Descargar PNG</button>
+      <button id="download">Descargar</button>
     </div>
-    <p style="font-size:.85rem;color:#666;margin-top:.6rem;">Genera códigos QR en el navegador. Sin datos enviados a servidores.</p>
   </div>
 
-  <div class="panel" style="display:flex;flex-direction:column;align-items:center;">
+  <div id="preview-container">
+    <h3>Vista previa</h3>
     <div id="preview"></div>
   </div>
 
-  <!-- Librería qrcodejs (CDN) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script>
     const preview = document.getElementById('preview');
-    let qr; // instancia
-    function clearPreview(){ preview.innerHTML = ''; }
+    let qr;
 
-    function generate(){
+    function clearPreview() {
+      preview.innerHTML = '';
+    }
+
+    function generateQR() {
       const text = document.getElementById('text').value.trim();
-      if(!text){ alert('Introduce texto o URL'); return; }
-      clearPreview();
-      const size = parseInt(document.getElementById('size').value,10);
-      const color = document.getElementById('color').value;
-      const bg = document.getElementById('bg').value;
+      if (!text) return alert('Introduce un texto o URL');
 
-      // qrcodejs genera un <canvas> o <img> dentro del contenedor
+      clearPreview();
+      const size = parseInt(document.getElementById('size').value);
+      const color1 = document.getElementById('color1').value;
+      const color2 = document.getElementById('color2').value;
+      const bg = document.getElementById('bg').value;
+      const gradient = document.getElementById('gradient').value;
+      const margin = parseInt(document.getElementById('margin').value);
+      const logoUrl = document.getElementById('logo-url').value.trim();
+
+      // Crear un canvas temporal para aplicar degradado
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      if (gradient === 'linear') {
+        const grad = ctx.createLinearGradient(0, 0, size, 0);
+        grad.addColorStop(0, color1);
+        grad.addColorStop(1, color2);
+        ctx.fillStyle = grad;
+      } else if (gradient === 'radial') {
+        const grad = ctx.createRadialGradient(size / 2, size / 2, size / 6, size / 2, size / 2, size / 2);
+        grad.addColorStop(0, color1);
+        grad.addColorStop(1, color2);
+        ctx.fillStyle = grad;
+      } else {
+        ctx.fillStyle = color1;
+      }
+
+      // Fondo
+      ctx.fillRect(0, 0, size, size);
+
+      // Generar QR temporalmente
       qr = new QRCode(preview, {
         text: text,
         width: size,
         height: size,
-        colorDark: color,
+        colorDark: ctx.fillStyle,
         colorLight: bg,
-        correctLevel: QRCode.CorrectLevel.M
+        correctLevel: QRCode.CorrectLevel.H
       });
+
+      // Esperar a que se renderice (asincrónico)
+      setTimeout(() => {
+        const qrCanvas = preview.querySelector('canvas');
+        if (qrCanvas && logoUrl) {
+          const logo = new Image();
+          logo.crossOrigin = 'anonymous';
+          logo.onload = () => {
+            const ctx2 = qrCanvas.getContext('2d');
+            const logoSize = size * 0.2;
+            const x = (size - logoSize) / 2;
+            const y = (size - logoSize) / 2;
+            ctx2.drawImage(logo, x, y, logoSize, logoSize);
+          };
+          logo.src = logoUrl;
+        }
+      }, 300);
     }
 
-    document.getElementById('generate').addEventListener('click', generate);
+    document.getElementById('generate').addEventListener('click', generateQR);
 
     document.getElementById('download').addEventListener('click', () => {
-      if(!preview.querySelector('img') && !preview.querySelector('canvas')) { alert('Genera primero el QR'); return; }
-      // si es <img>
-      const img = preview.querySelector('img');
-      if(img){
-        const link = document.createElement('a');
-        link.href = img.src;
-        link.download = 'qr.png';
-        link.click();
-        return;
-      }
-      // si es canvas
       const canvas = preview.querySelector('canvas');
-      if(canvas){
-        const link = document.createElement('a');
-        link.href = canvas.toDataURL('image/png');
-        link.download = 'qr.png';
-        link.click();
-      }
+      if (!canvas) return alert('Primero genera el QR');
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = 'codigo_qr.png';
+      link.click();
     });
 
-    // Generar un ejemplo al cargar
-    document.getElementById('text').value = "https://qr.io/es/";
-    generate();
+    // Generar un QR inicial
+    document.getElementById('text').value = 'https://qr.io/es/';
+    generateQR();
   </script>
 </body>
 </html>
