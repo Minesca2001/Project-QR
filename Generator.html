@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Generador QR — Simple</title>
+<style>
+  :root{
+    --accent:#14c38e;
+    --bg:#f6fbff;
+    --card:#ffffff;
+    --muted:#6b7280;
+    --radius:12px;
+  }
+  html,body{height:100%;margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:#111;}
+  .wrap{max-width:1100px;margin:28px auto;padding:22px;display:grid;grid-template-columns:1fr 360px;gap:20px;}
+  .panel{background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:0 6px 18px rgba(8,15,25,0.05);}
+  h1{font-size:18px;margin:0 0 12px;}
+  label{display:block;font-size:13px;margin:10px 0 6px;color:var(--muted);}
+  input[type=text], select{width:100%;padding:10px;border-radius:8px;border:1px solid #e6eef6;background:#fbfeff}
+  .btn{display:inline-block;padding:10px 14px;border-radius:10px;border:0;background:var(--accent);color:white;font-weight:600;cursor:pointer}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .small{font-size:13px;padding:8px 10px;border-radius:8px;border:1px solid #e6eef6;background:#fff}
+  .previewArea{display:flex;flex-direction:column;align-items:center;gap:14px}
+  .qr-frame{background:white;padding:12px;border-radius:16px;box-shadow:0 6px 18px rgba(10,20,30,0.06);display:inline-block}
+  canvas{display:block}
+  .options{margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .muted{color:var(--muted);font-size:13px}
+  .footer-note{font-size:13px;color:var(--muted);margin-top:8px}
+  @media (max-width:950px){
+    .wrap{grid-template-columns:1fr; padding:12px;}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel">
+      <h1>Generador de Códigos QR — Versión simple</h1>
+      <div class="muted">Introduce la URL o texto, personaliza el marco y descarga tu código QR.</div>
+
+      <label>Tipo / Contenido</label>
+      <input id="inputText" type="text" placeholder="https://www.ejemplo.com" value="https://www.scribd.com/document/508830603/Caso-McDonald-s" />
+
+      <div class="options">
+        <div>
+          <label>Tamaño (px)</label>
+          <select id="size" class="small">
+            <option value="220">220</option>
+            <option value="300" selected>300</option>
+            <option value="400">400</option>
+            <option value="600">600</option>
+          </select>
+        </div>
+        <div>
+          <label>Espaciado/padding (px)</label>
+          <select id="padding" class="small">
+            <option value="8">8</option>
+            <option value="16" selected>16</option>
+            <option value="28">28</option>
+            <option value="40">40</option>
+          </select>
+        </div>
+      </div>
+
+      <label>Texto del marco</label>
+      <input id="frameText" type="text" placeholder="SCAN ME" value="SCAN ME" />
+
+      <div class="options" style="margin-top:8px">
+        <div>
+          <label>Color del marco</label>
+          <input id="frameColor" type="color" value="#000000" style="width:100%;height:40px;border-radius:8px;border:1px solid #e6eef6" />
+        </div>
+        <div>
+          <label>Color del texto</label>
+          <input id="textColor" type="color" value="#ffffff" style="width:100%;height:40px;border-radius:8px;border:1px solid #e6eef6" />
+        </div>
+      </div>
+
+      <div style="margin-top:14px;display:flex;gap:8px;align-items:center">
+        <button id="generate" class="btn">Generar vista previa</button>
+        <button id="download" class="btn" style="background:#0b73d0">Descargar PNG</button>
+        <div style="margin-left:auto" class="muted">Generado con <strong>Google Chart API</strong> (PNG)</div>
+      </div>
+
+      <div class="footer-note">Nota: Para personalizaciones más avanzadas (SVG, logos, distintos marcos) puedo ampliar esto. Esta versión descarga el QR + marco como PNG.</div>
+    </div>
+
+    <div class="panel previewArea">
+      <h1 style="font-size:15px;margin-bottom:0">Vista previa</h1>
+      <div id="previewContainer" class="qr-frame" aria-hidden="true">
+        <canvas id="finalCanvas" width="360" height="420"></canvas>
+      </div>
+      <div class="muted">Haz clic en "Generar vista previa" antes de descargar.</div>
+    </div>
+  </div>
+
+<script>
+/*
+  Simple QR generator using Google Chart API image as source.
+  Steps:
+  - Build Google Chart URL with encoded payload
+  - Load image
+  - Compose final canvas: rounded white inner area -> QR image -> bottom rounded label with text
+  - Allow PNG download
+  Limitaciones: la imagen base proviene del API chart.googleapis.com (PNG). Si quieres SVG o QR nativo en canvas, lo hago en versión siguiente.
+*/
+
+const inputText = document.getElementById('inputText');
+const generateBtn = document.getElementById('generate');
+const downloadBtn = document.getElementById('download');
+const frameText = document.getElementById('frameText');
+const frameColor = document.getElementById('frameColor');
+const textColor = document.getElementById('textColor');
+const sizeSelect = document.getElementById('size');
+const paddingSelect = document.getElementById('padding');
+const canvas = document.getElementById('finalCanvas');
+const ctx = canvas.getContext('2d');
+
+function buildGoogleQRUrl(payload, px){
+  const encoded = encodeURIComponent(payload);
+  // chart.googleapis.com returns a PNG image of the QR code
+  return `https://chart.googleapis.com/chart?cht=qr&chs=${px}x${px}&chl=${encoded}&chld=L|1`;
+}
+
+function drawPreview(){
+  const payload = inputText.value.trim();
+  if(!payload){
+    alert('Introduce una URL o texto para generar el QR.');
+    return;
+  }
+  const qrSize = parseInt(sizeSelect.value,10);
+  const padding = parseInt(paddingSelect.value,10);
+  const labelText = frameText.value || '';
+  const frameCol = frameColor.value;
+  const txtCol = textColor.value;
+
+  // final canvas dimensions
+  const labelHeight = Math.round(qrSize * 0.22);
+  const totalWidth = qrSize + padding*2;
+  const totalHeight = qrSize + padding*2 + labelHeight + 12;
+
+  canvas.width = totalWidth;
+  canvas.height = totalHeight;
+
+  // clear
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // draw outer rounded background (slight shadow)
+  const radius = 16;
+  ctx.fillStyle = '#ffffff';
+  roundRect(ctx, 0, 0, canvas.width, canvas.height, radius);
+  ctx.fill();
+  // draw frame (colored rectangle under label area)
+  // We'll draw a rounded rectangle around the QR with a colored bottom label
+  const innerX = padding;
+  const innerY = padding;
+  const innerW = qrSize;
+  const innerH = qrSize;
+  // draw QR placeholder background (white)
+  ctx.fillStyle = '#ffffff';
+  roundRect(ctx, innerX-6, innerY-6, innerW+12, innerH+12 + labelHeight, 14);
+  ctx.fill();
+
+  // load QR image from Google Chart
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = function(){
+    // draw QR image centered in inner area (with small margin)
+    ctx.drawImage(img, innerX, innerY, innerW, innerH);
+
+    // draw colored rounded label under qr
+    const labelW = innerW;
+    const labelX = innerX;
+    const labelY = innerY + innerH + 10; // small gap
+    const labelR = 8;
+    ctx.fillStyle = frameCol;
+    roundRect(ctx, labelX, labelY, labelW, labelHeight-6, labelR);
+    ctx.fill();
+
+    // draw arrow pointer up (to mimic screenshot small triangle)
+    const arrowW = 14;
+    const arrowH = 8;
+    const arrowX = labelX + labelW/2;
+    const arrowY = labelY - 6;
+    ctx.fillStyle = frameCol;
+    ctx.beginPath();
+    ctx.moveTo(arrowX - arrowW/2, arrowY);
+    ctx.lineTo(arrowX + arrowW/2, arrowY);
+    ctx.lineTo(arrowX, arrowY + arrowH);
+    ctx.closePath();
+    ctx.fill();
+
+    // draw text centered on label
+    ctx.font = `${Math.max(12, Math.round(labelHeight*0.45))}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = txtCol;
+    ctx.fillText(labelText, labelX + labelW/2, labelY + (labelHeight-6)/2);
+
+    // small border around QR area for style
+    ctx.strokeStyle = '#00000010';
+    ctx.lineWidth = 1;
+    roundRect(ctx, innerX-6, innerY-6, innerW+12, innerH+12 + labelHeight, 14);
+    ctx.stroke();
+  };
+  img.onerror = function(){
+    alert('Error cargando el QR desde el servicio externo. Revisa tu conexión o intenta otra vez.');
+  };
+
+  const qrUrl = buildGoogleQRUrl(payload, qrSize);
+  img.src = qrUrl;
+}
+
+/* helper: rounded rectangle path */
+function roundRect(ctx, x, y, width, height, radius) {
+  if (typeof radius === 'undefined') radius = 5;
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
+generateBtn.addEventListener('click', (e)=>{
+  drawPreview();
+});
+
+// Download current canvas as PNG
+downloadBtn.addEventListener('click', (e)=>{
+  // ensure preview drawn
+  drawPreview();
+  // create link and download
+  const filename = 'qr_custom.png';
+  canvas.toBlob(function(blob){
+    if(!blob){
+      alert('No se pudo generar la imagen. Asegúrate de haber generado la vista previa.');
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  }, 'image/png');
+});
+
+// generate initial preview
+window.addEventListener('load', ()=>{ setTimeout(drawPreview,200); });
+
+</script>
+</body>
+</html>
