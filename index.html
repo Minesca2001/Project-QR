@@ -1,0 +1,320 @@
+<!Doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Generador y Personalizador de QR</title>
+  <!-- Usa CDN para la librería qrcode (funciona offline si descargas la librería y la sirves localmente) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+  <style>
+    :root{--accent:#0b69ff}
+    body{font-family:Inter, system-ui, Arial; background:#f6f8fb; color:#0b1733; margin:0}
+    .app{max-width:960px;margin:28px auto;padding:20px;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(12,20,40,0.06)}
+    h1{font-size:20px;margin:0 0 14px}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px}
+    label{display:block;font-size:13px;margin-bottom:6px}
+    input[type=text], select, textarea{width:100%;padding:8px;border-radius:8px;border:1px solid #d7dcef;font-size:14px}
+    .row{display:flex;gap:10px}
+    .controls{padding:10px}
+    .preview{display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px;border-radius:8px;background:#fbfdff;border:1px dashed #e4eaf6}
+    .btn{background:var(--accent);color:#fff;padding:8px 12px;border-radius:8px;border:0;cursor:pointer}
+    .muted{color:#556; font-size:13px}
+    .small{font-size:13px}
+    input[type=range]{width:100%}
+    .footer{margin-top:14px;font-size:13px;color:#445}
+    .logo-preview{max-width:120px;max-height:120px;object-fit:contain;border-radius:8px}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>Generador y personalizador de códigos QR</h1>
+    <p class="muted">Introduce texto, URL o cualquier dato; personaliza colores, tamaño, corrección de errores y opcionalmente agrega un logo. Luego descarga PNG o SVG.</p>
+
+    <div class="grid">
+      <section class="controls">
+        <label for="data">Texto / URL</label>
+        <textarea id="data" rows="3" placeholder="https://ejemplo.com">https://www.google.com</textarea>
+
+        <div style="display:flex;gap:10px;margin-top:10px;">
+          <div style="flex:1">
+            <label for="size">Tamaño (px)</label>
+            <input id="size" type="range" min="128" max="2048" value="512" />
+            <div class="small"><span id="sizeVal">512</span> px</div>
+          </div>
+          <div style="width:120px">
+            <label for="ec">Corrección de error</label>
+            <select id="ec">
+              <option value="L">L - Bajo (7%)</option>
+              <option value="M" selected>M - Medio (15%)</option>
+              <option value="Q">Q - Alto (25%)</option>
+              <option value="H">H - Muy alto (30%)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:10px;align-items:center">
+          <div style="flex:1">
+            <label for="color">Color principal</label>
+            <input id="color" type="color" value="#000000" />
+          </div>
+          <div style="width:140px">
+            <label for="bg">Color fondo</label>
+            <input id="bg" type="color" value="#ffffff" />
+          </div>
+        </div>
+
+        <div style="margin-top:10px">
+          <label for="margin">Margen (módulo quieto)</label>
+          <input id="margin" type="range" min="0" max="40" value="4" />
+          <div class="small">Valor: <span id="marginVal">4</span></div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+          <input id="useLogo" type="checkbox" /> <label for="useLogo">Agregar logo</label>
+        </div>
+
+        <div id="logoControls" style="margin-top:10px;display:none;gap:8px;align-items:center">
+          <label for="logoFile">Seleccionar imagen (png/jpg, fondo transparente recomendado)</label>
+          <input id="logoFile" type="file" accept="image/*" />
+          <div class="row" style="margin-top:8px">
+            <div style="flex:1">
+              <label for="logoSize">Tamaño logo (%)</label>
+              <input id="logoSize" type="range" min="10" max="50" value="20" />
+              <div class="small"><span id="logoSizeVal">20</span>%</div>
+            </div>
+            <div style="width:120px">
+              <label for="logoBg">Fondo logo</label>
+              <select id="logoBg">
+                <option value="none">Transparente (recomendado)</option>
+                <option value="square">Cuadrado blanco</option>
+                <option value="circle">Círculo blanco</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <button id="generate" class="btn">Generar</button>
+          <button id="downloadPng" class="btn" style="background:#16a34a">Descargar PNG</button>
+          <button id="downloadSvg" class="btn" style="background:#f59e0b">Descargar SVG</button>
+        </div>
+
+        <div class="footer">Consejo: para incluir un logo usa corrección de error Q o H. Si el QR contiene mucha data, aumenta el tamaño para mejor lectura.</div>
+      </section>
+
+      <aside>
+        <div class="preview">
+          <div id="previewContainer" style="padding:10px;background:linear-gradient(180deg,#fff,#fbfdff);border-radius:8px">
+            <!-- Aquí se renderiza el canvas o el svg -->
+            <canvas id="qrCanvas" style="display:block;max-width:100%;height:auto"></canvas>
+            <div id="svgHolder" style="display:none"></div>
+          </div>
+
+          <div style="text-align:center">
+            <div class="muted">Previsualización</div>
+            <div id="logoPreviewWrap" style="margin-top:8px;display:none"><img id="logoPreview" class="logo-preview" src="" alt="logo"/></div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <p style="margin-top:14px;color:#444;font-size:13px">Creado por: TuGeneradorQR — puedes modificar este archivo HTML y abrirlo localmente en tu navegador.</p>
+  </main>
+
+  <script>
+    // Elementos
+    const dataEl = document.getElementById('data')
+    const sizeEl = document.getElementById('size')
+    const sizeVal = document.getElementById('sizeVal')
+    const ecEl = document.getElementById('ec')
+    const colorEl = document.getElementById('color')
+    const bgEl = document.getElementById('bg')
+    const marginEl = document.getElementById('margin')
+    const marginVal = document.getElementById('marginVal')
+    const generateBtn = document.getElementById('generate')
+    const downloadPngBtn = document.getElementById('downloadPng')
+    const downloadSvgBtn = document.getElementById('downloadSvg')
+    const canvas = document.getElementById('qrCanvas')
+    const svgHolder = document.getElementById('svgHolder')
+    const useLogo = document.getElementById('useLogo')
+    const logoControls = document.getElementById('logoControls')
+    const logoFile = document.getElementById('logoFile')
+    const logoPreview = document.getElementById('logoPreview')
+    const logoPreviewWrap = document.getElementById('logoPreviewWrap')
+    const logoSize = document.getElementById('logoSize')
+    const logoSizeVal = document.getElementById('logoSizeVal')
+    const logoBg = document.getElementById('logoBg')
+
+    let logoImage = null
+    let lastSvgString = ''
+
+    sizeVal.textContent = sizeEl.value
+    marginVal.textContent = marginEl.value
+    logoSizeVal.textContent = logoSize.value
+
+    sizeEl.addEventListener('input', ()=> sizeVal.textContent = sizeEl.value)
+    marginEl.addEventListener('input', ()=> marginVal.textContent = marginEl.value)
+    logoSize.addEventListener('input', ()=> logoSizeVal.textContent = logoSize.value)
+
+    useLogo.addEventListener('change', ()=>{
+      logoControls.style.display = useLogo.checked ? 'flex' : 'none'
+      logoPreviewWrap.style.display = useLogo.checked && logoImage ? 'block' : 'none'
+    })
+
+    logoFile.addEventListener('change', e=>{
+      const f = e.target.files[0]
+      if(!f) return
+      const url = URL.createObjectURL(f)
+      const img = new Image()
+      img.onload = ()=>{
+        logoImage = img
+        logoPreview.src = url
+        logoPreviewWrap.style.display = 'block'
+      }
+      img.src = url
+    })
+
+    async function renderQR({asSvg=false} = {}){
+      const text = dataEl.value || ''
+      const size = parseInt(sizeEl.value,10)
+      const ec = ecEl.value
+      const color = colorEl.value
+      const bg = bgEl.value
+      const margin = parseInt(marginEl.value,10)
+
+      if(!text){ alert('Introduce texto o URL para generar el QR'); return }
+
+      // Si queremos obtener SVG como string
+      if(asSvg){
+        try{
+          const svgString = await QRCode.toString(text, {type:'svg', errorCorrectionLevel:ec, color:{dark:color, light:bg}, width:size, margin:margin})
+          lastSvgString = svgString
+          svgHolder.innerHTML = svgString
+          svgHolder.style.display = 'block'
+          canvas.style.display = 'none'
+          return svgString
+        }catch(err){ console.error(err); alert('Error generando SVG: '+err.message) }
+        return null
+      }
+
+      // Generar a canvas, y si hay logo lo mezclamos en canvas
+      try{
+        const dataUrl = await QRCode.toDataURL(text, {errorCorrectionLevel:ec, color:{dark:color, light:bg}, width:size, margin:margin})
+        const ctx = canvas.getContext('2d')
+        canvas.width = size
+        canvas.height = size
+        const img = new Image()
+        img.onload = ()=>{
+          // dibuja QR
+          ctx.clearRect(0,0,canvas.width,canvas.height)
+          ctx.drawImage(img,0,0)
+
+          // si hay logo, dibujar encima
+          if(useLogo.checked && logoImage){
+            const perc = parseInt(logoSize.value,10)/100
+            const logoW = Math.floor(size * perc)
+            const logoH = Math.floor(logoImage.height * (logoW/logoImage.width))
+            const x = Math.floor((size - logoW)/2)
+            const y = Math.floor((size - logoH)/2)
+
+            // fondo del logo opcional
+            if(logoBg.value === 'square'){
+              const pad = Math.floor(logoW*0.12)
+              ctx.fillStyle = '#fff'
+              ctx.fillRect(x-pad, y-pad, logoW+pad*2, logoH+pad*2)
+            }else if(logoBg.value === 'circle'){
+              const pad = Math.floor(logoW*0.12)
+              ctx.beginPath()
+              ctx.arc(size/2, size/2, (logoW+pad)/2, 0, Math.PI*2)
+              ctx.closePath()
+              ctx.fillStyle = '#fff'
+              ctx.fill()
+            }
+
+            ctx.drawImage(logoImage, x, y, logoW, logoH)
+          }
+
+          canvas.style.display = 'block'
+          svgHolder.style.display = 'none'
+        }
+        img.src = dataUrl
+      }catch(err){ console.error(err); alert('Error generando QR: '+err.message) }
+    }
+
+    generateBtn.addEventListener('click', ()=> renderQR())
+
+    downloadPngBtn.addEventListener('click', async ()=>{
+      // Generar canvas si no existe
+      await renderQR({asSvg:false})
+      canvas.toBlob(blob=>{
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = 'qr.png'
+        a.click()
+      })
+    })
+
+    downloadSvgBtn.addEventListener('click', async ()=>{
+      const svgStr = await renderQR({asSvg:true})
+      if(!svgStr) return
+
+      // Si se requiere logo embebido en SVG: lo vamos a rasterizar y pegar sobre el SVG (simple approach: convertir svg+logo a canvas, luego a PNG).
+      if(useLogo.checked && logoImage){
+        // Convierta SVG a imagen y mezclar en canvas
+        const size = parseInt(sizeEl.value,10)
+        const canvasTmp = document.createElement('canvas')
+        canvasTmp.width = size
+        canvasTmp.height = size
+        const ctx = canvasTmp.getContext('2d')
+
+        // Crear blob del svg y cargar como imagen
+        const svgBlob = new Blob([svgStr], {type:'image/svg+xml;charset=utf-8'})
+        const url = URL.createObjectURL(svgBlob)
+        const img = new Image()
+        img.onload = ()=>{
+          ctx.drawImage(img,0,0)
+          // dibujar logo encima
+          const perc = parseInt(logoSize.value,10)/100
+          const logoW = Math.floor(size * perc)
+          const logoH = Math.floor(logoImage.height * (logoW/logoImage.width))
+          const x = Math.floor((size - logoW)/2)
+          const y = Math.floor((size - logoH)/2)
+
+          if(logoBg.value === 'square'){
+            const pad = Math.floor(logoW*0.12)
+            ctx.fillStyle = '#fff'
+            ctx.fillRect(x-pad, y-pad, logoW+pad*2, logoH+pad*2)
+          }else if(logoBg.value === 'circle'){
+            const pad = Math.floor(logoW*0.12)
+            ctx.beginPath()
+            ctx.arc(size/2, size/2, (logoW+pad)/2, 0, Math.PI*2)
+            ctx.closePath()
+            ctx.fillStyle = '#fff'
+            ctx.fill()
+          }
+
+          ctx.drawImage(logoImage, x, y, logoW, logoH)
+          canvasTmp.toBlob(b=>{
+            const a = document.createElement('a')
+            a.href = URL.createObjectURL(b)
+            a.download = 'qr-with-logo.png'
+            a.click()
+            URL.revokeObjectURL(url)
+          })
+        }
+        img.src = url
+      }else{
+        // Descargar el SVG puro
+        const blob = new Blob([svgStr], {type:'image/svg+xml;charset=utf-8'})
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = 'qr.svg'
+        a.click()
+      }
+    })
+
+    // Generar inicialmente
+    renderQR()
+  </script>
+</body>
+</html>
