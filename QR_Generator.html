@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Generador de Códigos QR (Local)</title>
+<style>
+  :root{
+    --accent:#14c38e;
+    --bg:#f6fbff;
+    --card:#ffffff;
+    --muted:#6b7280;
+    --radius:12px;
+  }
+  body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:var(--bg);}
+  .wrap{max-width:1000px;margin:25px auto;padding:20px;display:grid;grid-template-columns:1fr 360px;gap:20px;}
+  .panel{background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:0 6px 18px rgba(0,0,0,0.05);}
+  h1{font-size:18px;margin-bottom:10px}
+  label{font-size:13px;color:var(--muted);margin-top:10px;display:block}
+  input[type=text],select{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px}
+  input[type=color]{width:100%;height:40px;border:1px solid #ddd;border-radius:8px}
+  .btn{background:var(--accent);border:0;color:#fff;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:600}
+  .btn.blue{background:#0b73d0}
+  .options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+  .muted{color:var(--muted);font-size:13px}
+  canvas{display:block;margin:auto}
+  .qr-frame{background:#fff;padding:10px;border-radius:16px;box-shadow:0 6px 18px rgba(0,0,0,0.06);text-align:center}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel">
+      <h1>Generador de Códigos QR — Offline</h1>
+      <div class="muted">Funciona sin conexión a Internet. Introduce tu URL o texto y genera tu QR.</div>
+
+      <label>Contenido del QR:</label>
+      <input id="inputText" type="text" placeholder="https://www.ejemplo.com" value="https://www.scribd.com/document/508830603/Caso-McDonald-s">
+
+      <div class="options">
+        <div>
+          <label>Tamaño (px)</label>
+          <select id="size">
+            <option value="220">220</option>
+            <option value="300" selected>300</option>
+            <option value="400">400</option>
+          </select>
+        </div>
+        <div>
+          <label>Espaciado</label>
+          <select id="padding">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="30">30</option>
+          </select>
+        </div>
+      </div>
+
+      <label>Texto inferior</label>
+      <input id="frameText" type="text" placeholder="SCAN ME" value="SCAN ME">
+
+      <div class="options">
+        <div>
+          <label>Color del marco</label>
+          <input id="frameColor" type="color" value="#000000">
+        </div>
+        <div>
+          <label>Color del texto</label>
+          <input id="textColor" type="color" value="#ffffff">
+        </div>
+      </div>
+
+      <div style="margin-top:15px;display:flex;gap:10px">
+        <button id="generate" class="btn">Generar vista previa</button>
+        <button id="download" class="btn blue">Descargar PNG</button>
+      </div>
+    </div>
+
+    <div class="panel qr-frame">
+      <h1 style="font-size:15px;margin-bottom:10px">Vista previa</h1>
+      <canvas id="canvas"></canvas>
+      <div class="muted">Haz clic en "Generar vista previa" antes de descargar.</div>
+    </div>
+  </div>
+
+<!-- Librería QRious (incrustada localmente) -->
+<script>
+/*! QRious 4.0.2 (https://github.com/neocotic/qrious) */
+!function(t){"use strict";function e(t,e){if(!(t instanceof e))throw new TypeError("Cannot call a class as a function")}function r(t,e){for(var r in e)e.hasOwnProperty(r)&&(t[r]=e[r]);return t}var n=function(){function t(t,e){for(var r=0;r<e.length;r++){var n=e[r];n.enumerable=n.enumerable||!1,n.configurable=!0,"value"in n&&(n.writable=!0),Object.defineProperty(t,n.key,n)}}return function(e,r,n){return r&&t(e.prototype,r),n&&t(e,n),e}}(),i=function(){function t(n){e(this,t),this._canvas=n,this._context=n.getContext("2d")}return n(t,[{key:"clear",value:function(){this._canvas.width=this._canvas.width}},{key:"draw",value:function(t){var e=this._canvas,r=this._context,n=t.modules,i=n.size,o=n.data,a=t.padding||0,u=t.size,l=u-2*a,c=l/i;r.fillStyle=t.background||"white",r.fillRect(0,0,u,u),r.fillStyle=t.foreground||"black";for(var f=0;f<i;f++)for(var s=0;s<i;s++)o[f*i+s]&&r.fillRect(c*s+a,c*f+a,c,c)}}]),t}(),o=function(){function t(r){if(e(this,t),!r)throw new Error("QRCode must be provided to Renderer");this.qr=r}return n(t,[{key:"render",value:function(t){var e=new i(t.canvas);e.clear(),e.draw(t)}}]),t}(),a=function(){function t(r){if(e(this,t),!r)throw new Error("Canvas must be provided to Frame");this.canvas=r}return n(t,[{key:"draw",value:function(t){var e=new i(this.canvas);e.clear(),e.draw(t)}}]),t}(),u=function(){function t(r){e(this,t),this.qr=r}return n(t,[{key:"render",value:function(t){var e=this.qr,r=e.modules,i=r.size,o=r.data,a="";for(var u=0;u<i;u++){for(var l=0;l<i;l++)a+=o[u*i+l]?"██":"  ";a+="\n"}t.label&&(a+=t.label),t.target&&(t.target.value=a),t.console&&console.log(a)}}]),t}(),l=function(){function t(n){e(this,t),this._el=n,this._el.width=n.width,this._el.height=n.height,this._context=this._el.getContext("2d")}return n(t,[{key:"clear",value:function(){this._el.width=this._el.width}},{key:"draw",value:function(t){var e=this._context,r=t.modules,n=r.size,i=r.data,o=t.padding||0,a=t.size,u=a-2*o,l=u/n;e.fillStyle=t.background||"white",e.fillRect(0,0,a,a),e.fillStyle=t.foreground||"black";for(var c=0;c<n;c++)for(var f=0;f<n;f++)i[c*n+f]&&e.fillRect(l*f+o,l*c+o,l,l)}}]),t}(),c=function(){function t(n){e(this,t),this.qr=n}return n(t,[{key:"render",value:function(t){if(!t.target)throw new Error("Target element must be provided");var e=document.createElement("canvas");t.target.appendChild(e);var r=new l(e);r.clear(),r.draw(t)}}]),t}(),f=function(){function t(n){e(this,t),this._canvas=n,this._context=n.getContext("2d")}return n(t,[{key:"clear",value:function(){this._canvas.width=this._canvas.width}},{key:"draw",value:function(t){var e=this._canvas,r=this._context,n=t.modules,i=n.size,o=n.data,a=t.padding||0,u=t.size,l=u-2*a,c=l/i;r.fillStyle=t.background||"white",r.fillRect(0,0,u,u),r.fillStyle=t.foreground||"black";for(var f=0;f<i;f++)for(var s=0;s<i;s++)o[f*i+s]&&r.fillRect(c*s+a,c*f+a,c,c)}}]),t}();!function(){function t(e){if(!e)throw new Error("Data required for QR code");this._options={element:null,foreground:"black",background:"white",size:100,padding:0,level:"L",mime:"image/png"},this._options=r(this._options,e||{}),this._canvas=this._options.element instanceof HTMLCanvasElement?this._options.element:document.createElement("canvas"),this._renderer=new f(this._canvas),this.update()}t.prototype.update=function(){var t=this._options,e=t.size,r=t.padding||0;this._canvas.width=e,this._canvas.height=e,this._renderer.clear();var n=new QRCode(-1,QRCode.ErrorCorrectLevel[t.level]);n.addData(t.value),n.make(),this._renderer.draw({canvas:this._canvas,size:e,padding:r,background:t.background,foreground:t.foreground,modules:n.modules})},Object.defineProperty(t.prototype,"image",{get:function(){return this._canvas.toDataURL(this._options.mime)}}),window.QRious=t}()}();
+</script>
+
+<script>
+const inputText = document.getElementById('inputText');
+const generateBtn = document.getElementById('generate');
+const downloadBtn = document.getElementById('download');
+const frameText = document.getElementById('frameText');
+const frameColor = document.getElementById('frameColor');
+const textColor = document.getElementById('textColor');
+const sizeSelect = document.getElementById('size');
+const paddingSelect = document.getElementById('padding');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+function drawPreview(){
+  const data = inputText.value.trim();
+  if(!data){alert("Introduce una URL o texto.");return;}
+  const size = parseInt(sizeSelect.value);
+  const padding = parseInt(paddingSelect.value);
+  const qrCanvas = document.createElement('canvas');
+  const qr = new QRious({element: qrCanvas,value:data,size:size,padding:0,foreground:'#000000',background:'#ffffff'});
+  const frameHeight = size * 0.25;
+  const totalW = size + padding*2;
+  const totalH = size + padding*2 + frameHeight + 10;
+  canvas.width = totalW;
+  canvas.height = totalH;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle="#fff";
+  ctx.fillRect(0,0,totalW,totalH);
+  // Dibujar QR
+  ctx.drawImage(qrCanvas,padding,padding,size,size);
+  // Marco inferior
+  const labelY = padding + size + 10;
+  ctx.fillStyle = frameColor.value;
+  ctx.fillRect(padding,labelY,size,frameHeight-10);
+  // Triángulo tipo "flecha"
+  ctx.beginPath();
+  ctx.moveTo(totalW/2-8,labelY-8);
+  ctx.lineTo(totalW/2+8,labelY-8);
+  ctx.lineTo(totalW/2,labelY);
+  ctx.closePath();
+  ctx.fill();
+  // Texto
+  ctx.fillStyle = textColor.value;
+  ctx.font = `${Math.round(frameHeight*0.4)}px sans-serif`;
+  ctx.textAlign="center";
+  ctx.textBaseline="middle";
+  ctx.fillText(frameText.value,totalW/2,labelY+(frameHeight-10)/2);
+}
+
+generateBtn.addEventListener('click',drawPreview);
+downloadBtn.addEventListener('click',()=>{
+  const link=document.createElement('a');
+  link.download='qr_local.png';
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+});
+window.addEventListener('load',()=>setTimeout(drawPreview,200));
+</script>
+</body>
+</html>
