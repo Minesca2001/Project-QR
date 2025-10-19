@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <title>Generador QR</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; display:flex; gap:2rem; padding:2rem; align-items:flex-start; }
+    .panel { width: 420px; padding:1rem; border-radius:8px; box-shadow:0 4px 14px rgba(0,0,0,.08); }
+    label { display:block; margin-top:.6rem; font-size:.9rem; }
+    input, textarea, select { width:100%; padding:.5rem; margin-top:.3rem; border-radius:6px; border:1px solid #ddd; }
+    button { margin-top:1rem; padding:.6rem .9rem; border-radius:8px; border:none; cursor:pointer; }
+    #preview { display:flex; align-items:center; justify-content:center; width:250px; height:250px; border:1px dashed #eee; background:#fff; }
+    .controls { display:flex; gap:.5rem; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h2>Generador QR</h2>
+    <label>Texto o URL:
+      <textarea id="text" rows="3" placeholder="https://ejemplo.com"></textarea>
+    </label>
+    <label>Tamaño (px):
+      <select id="size">
+        <option value="128">128</option>
+        <option value="192" selected>192</option>
+        <option value="256">256</option>
+        <option value="384">384</option>
+      </select>
+    </label>
+    <label>Color (puntos):
+      <input id="color" type="color" value="#000000"/>
+    </label>
+    <label>Color fondo:
+      <input id="bg" type="color" value="#ffffff"/>
+    </label>
+    <div class="controls">
+      <button id="generate">Generar</button>
+      <button id="download">Descargar PNG</button>
+    </div>
+    <p style="font-size:.85rem;color:#666;margin-top:.6rem;">Genera códigos QR en el navegador. Sin datos enviados a servidores.</p>
+  </div>
+
+  <div class="panel" style="display:flex;flex-direction:column;align-items:center;">
+    <div id="preview"></div>
+  </div>
+
+  <!-- Librería qrcodejs (CDN) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    const preview = document.getElementById('preview');
+    let qr; // instancia
+    function clearPreview(){ preview.innerHTML = ''; }
+
+    function generate(){
+      const text = document.getElementById('text').value.trim();
+      if(!text){ alert('Introduce texto o URL'); return; }
+      clearPreview();
+      const size = parseInt(document.getElementById('size').value,10);
+      const color = document.getElementById('color').value;
+      const bg = document.getElementById('bg').value;
+
+      // qrcodejs genera un <canvas> o <img> dentro del contenedor
+      qr = new QRCode(preview, {
+        text: text,
+        width: size,
+        height: size,
+        colorDark: color,
+        colorLight: bg,
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+
+    document.getElementById('generate').addEventListener('click', generate);
+
+    document.getElementById('download').addEventListener('click', () => {
+      if(!preview.querySelector('img') && !preview.querySelector('canvas')) { alert('Genera primero el QR'); return; }
+      // si es <img>
+      const img = preview.querySelector('img');
+      if(img){
+        const link = document.createElement('a');
+        link.href = img.src;
+        link.download = 'qr.png';
+        link.click();
+        return;
+      }
+      // si es canvas
+      const canvas = preview.querySelector('canvas');
+      if(canvas){
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = 'qr.png';
+        link.click();
+      }
+    });
+
+    // Generar un ejemplo al cargar
+    document.getElementById('text').value = "https://qr.io/es/";
+    generate();
+  </script>
+</body>
+</html>
